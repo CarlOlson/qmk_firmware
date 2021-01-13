@@ -6,6 +6,8 @@
 
 #include QMK_KEYBOARD_H
 
+LEADER_EXTERNS();
+
 extern uint8_t is_master;
 
 const uint16_t PROGMEM uh_combo[] = {KC_U, KC_H, COMBO_END};
@@ -19,6 +21,7 @@ const uint16_t PROGMEM ps_combo[] = {KC_P, KC_S, COMBO_END};
 const uint16_t PROGMEM ks_combo[] = {KC_K, KC_S, COMBO_END};
 const uint16_t PROGMEM kw_combo[] = {KC_K, KC_W, COMBO_END};
 const uint16_t PROGMEM kv_combo[] = {KC_K, KC_V, COMBO_END};
+const uint16_t PROGMEM grvd_combo[] = {KC_GRV, KC_D, COMBO_END};
 
 combo_t key_combos[COMBO_COUNT] =
   {
@@ -32,13 +35,13 @@ combo_t key_combos[COMBO_COUNT] =
    COMBO(ps_combo, KC_BSLS),
    COMBO(kw_combo, KC_PLUS),
    COMBO(kv_combo, KC_QUES),
-   COMBO(ks_combo, KC_PIPE)
+   COMBO(ks_combo, KC_PIPE),
   };
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] =
   {
    [L_INT] = LAYOUT(
-                    KC_GRV,           KC_QUOT,  KC_COMM,  KC_DOT,  KC_P,  KC_Y,  KC_F,  KC_G,  KC_C,  KC_R,  KC_L,  KC_NO,
+                    KC_GRV,           KC_QUOT,  KC_COMM,  KC_DOT,  KC_P,  KC_Y,  KC_F,  KC_G,  KC_C,  KC_R,  KC_L,  KC_LEAD,
                     LGUI_T(KC_TAB),   KC_A,     KC_O,     KC_E,    KC_U,  KC_I,  KC_D,  KC_H,  KC_T,  KC_N,  KC_S,  KC_MINS,
                     KC_LSPO,          KC_SCLN,  KC_Q,     KC_J,    KC_K,  KC_X,  KC_B,  KC_M,  KC_W,  KC_V,  KC_Z,  KC_RSPC,
                     MO(L_FNS),  MO(L_NUM), LT(L_CTL, KC_SPC), LT(L_ALT, KC_SPC), MO(L_NUM), MO(L_FNS)
@@ -70,12 +73,13 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] =
   };
 
 void set_keylog(uint16_t keycode, keyrecord_t *record);
+const char *read_layer_state(void);
+const char *read_logo(void);
+const char *read_keylog(void);
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
   if (record->event.pressed) {
-#ifdef SSD1306OLED
     set_keylog(keycode, record);
-#endif
   }
 
   bool is_ctrl = keyboard_report->mods & MOD_BIT(KC_RCTL);
@@ -125,11 +129,12 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
   return true;
 }
 
-#ifdef SSD1306OLED
-
-const char *read_layer_state(void);
-const char *read_logo(void);
-const char *read_keylog(void);
+uint16_t get_tapping_term(uint16_t keycode) {
+  switch (keycode) {
+  default:
+    return TAPPING_TERM;
+  }
+}
 
 void matrix_init_user(void) {
   iota_gfx_init(!has_usb());
@@ -137,6 +142,20 @@ void matrix_init_user(void) {
 
 void matrix_scan_user(void) {
   iota_gfx_task();
+
+  LEADER_DICTIONARY() {
+    leading = false;
+    leader_end();
+
+    SEQ_ONE_KEY(KC_D) {
+      register_code(KC_RCTL);
+      tap_code(KC_DEL);
+      unregister_code(KC_RCTL);
+    }
+    SEQ_ONE_KEY(KC_R) {
+      clear_keyboard();
+    }
+  }
 }
 
 void matrix_render_user(struct CharacterMatrix *matrix) {
@@ -167,5 +186,3 @@ void iota_gfx_task_user(void) {
   matrix_render_user(&matrix);
   matrix_update(&display, &matrix);
 }
-
-#endif
